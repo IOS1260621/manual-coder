@@ -251,7 +251,6 @@ def start_new_schedule():
     st.session_state.schedule = {}
     st.session_state.selected_employee = ""
     st.session_state.selected_week_label = ""
-    st.session_state.save_schedule_target = "New Schedule"
     st.session_state.save_schedule_name = ""
     st.session_state.load_schedule_target = ""
 
@@ -473,9 +472,6 @@ if "employees" not in st.session_state:
 if "schedule" not in st.session_state:
     st.session_state.schedule = {}
 
-if "save_schedule_target" not in st.session_state:
-    st.session_state.save_schedule_target = "New Schedule"
-
 if "save_schedule_name" not in st.session_state:
     st.session_state.save_schedule_name = ""
 
@@ -483,9 +479,6 @@ if "load_schedule_target" not in st.session_state:
     st.session_state.load_schedule_target = ""
 
 saved_schedule_names = get_saved_schedule_names()
-
-if st.session_state.save_schedule_target not in (["New Schedule"] + saved_schedule_names):
-    st.session_state.save_schedule_target = "New Schedule"
 
 if saved_schedule_names and st.session_state.load_schedule_target not in saved_schedule_names:
     st.session_state.load_schedule_target = saved_schedule_names[0]
@@ -501,24 +494,12 @@ with top_controls_col:
             st.success(message)
             st.rerun()
 
-    save_options = ["New Schedule"] + saved_schedule_names
-    save_target = st.selectbox(
-        "Save current schedule as",
-        save_options,
-        key="save_schedule_target",
+    save_name = st.text_input(
+        "Schedule name",
+        placeholder="Enter a schedule name",
+        key="save_schedule_name",
         label_visibility="collapsed"
     )
-
-    if save_target == "New Schedule":
-        save_name = st.text_input(
-            "New schedule name",
-            placeholder="Enter a schedule name",
-            key="save_schedule_name",
-            label_visibility="collapsed"
-        )
-    else:
-        save_name = save_target
-        st.session_state.save_schedule_name = save_target
 
     if st.button("Save Current Schedule As", use_container_width=True):
         success, message = save_current_schedule(save_name)

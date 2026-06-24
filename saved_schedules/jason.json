@@ -1,0 +1,14 @@
+{
+  "employees": {
+    "jason": {
+      "FTE": "",
+      "Weekend Group": "",
+      "Default Site": "",
+      "Default Modality": "X-Ray"
+    }
+  },
+  "schedule": {
+    "jason": {}
+  },
+  "saved_at": "2026-06-24T19:23:52.170405"
+}

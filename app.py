@@ -246,6 +246,18 @@ def load_saved_schedule(schedule_name):
     return True, f"Loaded schedule {safe_name}."
 
 
+def start_new_schedule():
+    st.session_state.employees = {}
+    st.session_state.schedule = {}
+    st.session_state.selected_employee = ""
+    st.session_state.selected_week_label = ""
+    st.session_state.save_schedule_target = "New Schedule"
+    st.session_state.save_schedule_name = ""
+    st.session_state.load_schedule_target = ""
+
+    return True, "Started a new schedule."
+
+
 def create_blank_day_row(day_date, employee_info):
     return {
         "Day": day_date.day,
@@ -483,6 +495,12 @@ top_spacer_col, top_controls_col = st.columns([0.66, 0.34])
 with top_controls_col:
     st.markdown("**Schedule Saves**")
 
+    if st.button("New Schedule", use_container_width=True):
+        success, message = start_new_schedule()
+        if success:
+            st.success(message)
+            st.rerun()
+
     save_options = ["New Schedule"] + saved_schedule_names
     save_target = st.selectbox(
         "Save current schedule as",
@@ -502,7 +520,7 @@ with top_controls_col:
         save_name = save_target
         st.session_state.save_schedule_name = save_target
 
-    if st.button("Save Current Schedule", use_container_width=True):
+    if st.button("Save Current Schedule As", use_container_width=True):
         success, message = save_current_schedule(save_name)
         if success:
             st.success(message)

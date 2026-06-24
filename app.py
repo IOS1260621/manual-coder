@@ -1,6 +1,8 @@
 import streamlit as st
 import pandas as pd
+import json
 import re
+from pathlib import Path
 from datetime import date, datetime, timedelta
 from calendar import monthrange
 
@@ -37,6 +39,9 @@ st.markdown(
     """,
     unsafe_allow_html=True
 )
+
+SCHEDULE_SAVE_DIR = Path("saved_schedules")
+SCHEDULE_SAVE_DIR.mkdir(exist_ok=True)
 
 
 # -----------------------------
@@ -190,6 +195,55 @@ def get_week_ranges(year, month):
         weeks.append(month_dates[28:])
 
     return weeks
+
+
+def sanitize_schedule_name(schedule_name):
+    schedule_name = str(schedule_name).strip()
+    schedule_name = re.sub(r"[^A-Za-z0-9._ -]+", "_", schedule_name)
+    return schedule_name.replace(" ", "_")
+
+
+def get_saved_schedule_names():
+    return sorted(path.stem for path in SCHEDULE_SAVE_DIR.glob("*.json"))
+
+
+def save_current_schedule(schedule_name):
+    safe_name = sanitize_schedule_name(schedule_name)
+
+    if not safe_name:
+        return False, "Please choose a schedule name to save."
+
+    payload = {
+        "employees": st.session_state.employees,
+        "schedule": st.session_state.schedule,
+        "saved_at": datetime.now().isoformat()
+    }
+
+    save_path = SCHEDULE_SAVE_DIR / f"{safe_name}.json"
+
+    with save_path.open("w", encoding="utf-8") as file_handle:
+        json.dump(payload, file_handle, indent=2, ensure_ascii=False)
+
+    return True, f"Saved schedule to {safe_name}."
+
+
+def load_saved_schedule(schedule_name):
+    safe_name = sanitize_schedule_name(schedule_name)
+    load_path = SCHEDULE_SAVE_DIR / f"{safe_name}.json"
+
+    if not load_path.exists():
+        return False, f"Saved schedule {safe_name} was not found."
+
+    with load_path.open("r", encoding="utf-8") as file_handle:
+        payload = json.load(file_handle)
+
+    st.session_state.employees = payload.get("employees", {})
+    st.session_state.schedule = payload.get("schedule", {})
+
+    employee_names = list(st.session_state.employees.keys())
+    st.session_state.selected_employee = employee_names[0] if employee_names else ""
+
+    return True, f"Loaded schedule {safe_name}."
 
 
 def create_blank_day_row(day_date, employee_info):
@@ -406,6 +460,73 @@ if "employees" not in st.session_state:
 
 if "schedule" not in st.session_state:
     st.session_state.schedule = {}
+
+if "save_schedule_target" not in st.session_state:
+    st.session_state.save_schedule_target = "New Schedule"
+
+if "save_schedule_name" not in st.session_state:
+    st.session_state.save_schedule_name = ""
+
+if "load_schedule_target" not in st.session_state:
+    st.session_state.load_schedule_target = ""
+
+saved_schedule_names = get_saved_schedule_names()
+
+if st.session_state.save_schedule_target not in (["New Schedule"] + saved_schedule_names):
+    st.session_state.save_schedule_target = "New Schedule"
+
+if saved_schedule_names and st.session_state.load_schedule_target not in saved_schedule_names:
+    st.session_state.load_schedule_target = saved_schedule_names[0]
+
+top_spacer_col, top_controls_col = st.columns([0.66, 0.34])
+
+with top_controls_col:
+    st.markdown("**Schedule Saves**")
+
+    save_options = ["New Schedule"] + saved_schedule_names
+    save_target = st.selectbox(
+        "Save current schedule as",
+        save_options,
+        key="save_schedule_target",
+        label_visibility="collapsed"
+    )
+
+    if save_target == "New Schedule":
+        save_name = st.text_input(
+            "New schedule name",
+            placeholder="Enter a schedule name",
+            key="save_schedule_name",
+            label_visibility="collapsed"
+        )
+    else:
+        save_name = save_target
+        st.session_state.save_schedule_name = save_target
+
+    if st.button("Save Current Schedule", use_container_width=True):
+        success, message = save_current_schedule(save_name)
+        if success:
+            st.success(message)
+            st.rerun()
+        else:
+            st.error(message)
+
+    if saved_schedule_names:
+        load_target = st.selectbox(
+            "Load saved schedule",
+            saved_schedule_names,
+            key="load_schedule_target",
+            label_visibility="collapsed"
+        )
+
+        if st.button("Load Selected Schedule", use_container_width=True):
+            success, message = load_saved_schedule(load_target)
+            if success:
+                st.success(message)
+                st.rerun()
+            else:
+                st.error(message)
+    else:
+        st.caption("No saved schedules yet.")
 
 
 # -----------------------------
